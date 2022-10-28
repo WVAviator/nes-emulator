@@ -181,3 +181,40 @@ fn test_0x79_adc_absolute_y() {
 
     assert_eq!(cpu.register_a, 0x06);
 }
+
+#[test]
+fn test_0x2d_and_absolute() {
+    let mut cpu = CPU::new();
+    cpu.mem_write(0x1234, 0b1100_1011);
+    cpu.load_and_run(vec![0xa9, 0b1100_1100, 0x2d, 0x34, 0x12, 0x00]);
+
+    assert_eq!(cpu.register_a, 0b1100_1000);
+}
+
+#[test]
+fn test_0x35_and_zero_page_x() {
+    let mut cpu = CPU::new();
+    cpu.mem_write(0x34, 0b1111_1011);
+    cpu.load_and_run(vec![0xa9, 0b1100_1101, 0xa2, 0x31, 0x35, 0x03, 0x00]);
+
+    assert_eq!(cpu.register_a, 0b1100_1001);
+}
+
+#[test]
+fn test_0x0a_asl_accumulator() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![0xa9, 0x14, 0x0a, 0x00]);
+
+    assert_eq!(cpu.register_a, 0x28);
+}
+
+#[test]
+fn test_0x06_asl_zero_page() {
+    let mut cpu = CPU::new();
+    cpu.mem_write(0x45, 0x80);
+    cpu.load_and_run(vec![0x06, 0x45, 0x00]);
+
+    assert_eq!(cpu.mem_read(0x45), 0x00);
+    assert!(cpu.status.get(Flag::Z));
+    assert!(cpu.status.get(Flag::C));
+}

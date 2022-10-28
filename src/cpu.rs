@@ -24,6 +24,7 @@ pub struct CPU {
 #[allow(non_camel_case_types)]
 pub enum AddressingMode {
     Immediate,
+    Accumulator,
     ZeroPage,
     ZeroPage_X,
     ZeroPage_Y,
@@ -79,6 +80,7 @@ impl CPU {
     fn get_operand_address(&self, mode: &AddressingMode) -> u16 {
         match mode {
             AddressingMode::Immediate => self.program_counter,
+            AddressingMode::Accumulator => panic!("Attempting to extract address from accumulator addressing mode. Handle this separately."),
             AddressingMode::ZeroPage => self.mem_read(self.program_counter) as u16,
             AddressingMode::ZeroPage_X => {
                 let pos = self.mem_read(self.program_counter);
@@ -251,6 +253,39 @@ impl CPU {
         self.add_to_register_a(value);
     }
 
+    // AND - Logical AND
+    // A logical AND is performed, bit by bit, on the accumulator contents using the contents of a byte of memory.
+    fn and(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        self.register_a = self.register_a & value;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    // ASL - Arithmetic Shift Left
+    // This operation shifts all the bits of the accumulator or memory contents one bit left. Bit 0 is set to 0 and bit 7 is placed in the carry flag. The effect of this operation is to multiply the memory contents by 2 (ignoring 2's complement considerations), setting the carry if the result will not fit in 8 bits.
+    fn asl(&mut self, mode: &AddressingMode) {
+        let (orig, result) = match mode {
+            AddressingMode::Accumulator => {
+                let orig = self.register_a;
+                self.register_a = self.register_a << 1;
+                (orig, self.register_a)
+            }
+            _ => {
+                let addr = self.get_operand_address(mode);
+                let orig = self.mem_read(addr);
+                let data = orig << 1;
+                self.mem_write(addr, data);
+                (orig, data)
+            }
+        };
+
+        let bit_7_set = 0b1000_0000 & orig != 0;
+        self.status.update(Flag::C, bit_7_set);
+
+        self.update_zero_and_negative_flags(result);
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         let sum = self.register_a as u16
             + data as u16
@@ -316,6 +351,8 @@ impl CPU {
                 "STX" => self.stx(&opcode.mode),
                 "STY" => self.sty(&opcode.mode),
                 "ADC" => self.adc(&opcode.mode),
+                "AND" => self.and(&opcode.mode),
+                "ASL" => self.asl(&opcode.mode),
                 "TAX" => self.tax(),
                 "TAY" => self.tay(),
                 "TSX" => self.tsx(),
