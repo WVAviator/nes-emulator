@@ -79,6 +79,7 @@ impl Flag {
     ///
     /// # Example
     /// ```
+    /// # use nes_emulator::cpu::status::Flag;
     /// let flag = Flag::C;
     /// let value = flag.as_u8();
     ///
@@ -102,6 +103,7 @@ impl Flag {
     /// # Example
     ///
     /// ```
+    /// # use nes_emulator::cpu::status::Flag;
     /// let value = 0b1000_0000;
     /// let flag = Flag::from_u8(value);
     ///
@@ -126,7 +128,7 @@ impl Flag {
 }
 
 /// A struct that represents the status register of a 6502 CPU
-struct ProcessorStatus {
+pub struct ProcessorStatus {
     current: u8,
 }
 
@@ -142,6 +144,7 @@ impl ProcessorStatus {
     /// # Example
     ///
     /// ```
+    /// # use nes_emulator::cpu::status::{Flag, ProcessorStatus};
     /// let status = ProcessorStatus::from(0b0100_1111);
     /// # assert_eq!(status.value(), 0b0100_1111);
     /// ```
@@ -155,6 +158,7 @@ impl ProcessorStatus {
     /// # Example
     ///
     /// ```
+    /// # use nes_emulator::cpu::status::{Flag, ProcessorStatus};
     /// let status = ProcessorStatus::from_flags(vec![Flag::C, Flag::Z, Flag::N]);
     /// # assert_eq!(status.value(), 0b1000_0011);
     /// ```
@@ -172,6 +176,7 @@ impl ProcessorStatus {
     /// # Example
     ///
     /// ```
+    /// # use nes_emulator::cpu::status::{Flag, ProcessorStatus};
     /// let mut status = ProcessorStatus::from_flags(vec![Flag::C, Flag::Z]);
     /// let result = status.get(Flag::Z);
     ///
@@ -187,6 +192,7 @@ impl ProcessorStatus {
     /// # Example
     ///
     /// ```
+    /// # use nes_emulator::cpu::status::{Flag, ProcessorStatus};
     /// let mut status = ProcessorStatus::new();
     /// status.set(Flag::Z);
     ///
@@ -202,6 +208,7 @@ impl ProcessorStatus {
     /// # Example
     ///
     /// ```
+    /// # use nes_emulator::cpu::status::{Flag, ProcessorStatus};
     /// let mut status = ProcessorStatus::from_flags(vec![Flag::Z]);
     /// status.unset(Flag::Z);
     ///
@@ -217,6 +224,7 @@ impl ProcessorStatus {
     /// # Example
     ///
     /// ```
+    /// # use nes_emulator::cpu::status::{Flag, ProcessorStatus};
     /// let mut status = ProcessorStatus::new();
     ///
     /// status.update(Flag::Z, true); // Sets the Z flag
@@ -233,6 +241,25 @@ impl ProcessorStatus {
         }
     }
 
+    /// Set the set the provided flag only if the provided u8 value has the corresponding bit set, and unset it otherwise.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use nes_emulator::cpu::status::{Flag, ProcessorStatus};
+    /// let mut status = ProcessorStatus::new();
+    ///
+    /// status.match_bit(Flag::N, 0b1001_0000);
+    /// assert_eq!(status.value(), 0b1000_0000);
+    ///
+    /// status.match_bit(Flag::N, 0b0100_1111);
+    /// assert_eq!(status.value(), 0b0000_0000);
+    /// ```
+    pub fn match_bit(&mut self, flag: Flag, value: u8) {
+        let flag_value = flag.as_u8();
+        self.update(flag, flag_value & value == flag_value);
+    }
+
     fn merge_flags(flags: Vec<Flag>) -> u8 {
         flags.iter().fold(0, |acc, flag| acc + flag.as_u8())
     }
@@ -242,6 +269,7 @@ impl ProcessorStatus {
     /// # Example
     ///
     /// ```
+    /// # use nes_emulator::cpu::status::{Flag, ProcessorStatus};
     /// let mut status = ProcessorStatus::new();
     /// status.set_many(vec![Flag::D, Flag::N, Flag::C]);
     ///
@@ -256,6 +284,7 @@ impl ProcessorStatus {
     /// # Example
     ///
     /// ```
+    /// # use nes_emulator::cpu::status::{Flag, ProcessorStatus};
     /// let mut status = ProcessorStatus::from(0b1100_1111);
     /// status.unset_many(vec![Flag::N, Flag::V, Flag::D]);
     ///
@@ -271,6 +300,7 @@ impl ProcessorStatus {
     /// # Example
     ///
     /// ```
+    /// # use nes_emulator::cpu::status::{Flag, ProcessorStatus};
     /// let mut status = ProcessorStatus::from(0b1000_0001);
     ///
     /// status.update_many(vec![Flag::N, Flag::V, Flag::D], true);
@@ -304,7 +334,7 @@ impl ProcessorStatus {
 }
 
 #[cfg(test)]
-mod stack_tests {
+mod status_tests {
     use super::*;
 
     #[test]
@@ -341,6 +371,17 @@ mod stack_tests {
         assert_eq!(status.current, 0b0000_0001);
         status.set(Flag::N);
         assert_eq!(status.current, 0b1000_0001);
+    }
+
+    #[test]
+    fn match_bit() {
+        let mut status = ProcessorStatus::new();
+        status.match_bit(Flag::V, 0b1100_1100);
+        assert_eq!(status.current, 0b0100_0000);
+        status.match_bit(Flag::C, 0b0000_0011);
+        assert_eq!(status.current, 0b0100_0001);
+        status.match_bit(Flag::V, 0b1000_1110);
+        assert_eq!(status.current, 0b0000_0001);
     }
 
     #[test]
