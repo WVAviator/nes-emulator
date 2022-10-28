@@ -175,6 +175,13 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_y);
     }
 
+    // STA - Store Accumulator
+    // Stores the contents of the accumulator into memory.
+    fn sta(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        self.mem_write(addr, self.register_a);
+    }
+
     // TAX - Transfer Accumulator to X
     // Copies the current contents of the accumulator into the X register and sets the zero and negative flags as appropriate
     fn tax(&mut self) {
@@ -256,6 +263,7 @@ impl CPU {
                 "LDA" => self.lda(&opcode.mode),
                 "LDX" => self.ldx(&opcode.mode),
                 "LDY" => self.ldy(&opcode.mode),
+                "STA" => self.sta(&opcode.mode),
                 "ADC" => self.adc(&opcode.mode),
                 "TAX" => self.tax(),
                 "INX" => self.inx(),

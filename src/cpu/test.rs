@@ -49,6 +49,22 @@ fn test_0xa0_ldy_immediate() {
 }
 
 #[test]
+fn test_0x8d_sta_absolute() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![0xa9, 0x01, 0x8d, 0x34, 0x12, 0x00]);
+
+    assert_eq!(cpu.mem_read(0x1234), 0x01);
+}
+
+#[test]
+fn test_0x85_sta_zero_page() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![0xa9, 0x01, 0x85, 0x05, 0x00]);
+
+    assert_eq!(cpu.mem_read(0x0005), 0x01);
+}
+
+#[test]
 fn test_0xaa_tax_move_a_to_x() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![0xa9, 0x0a, 0xaa, 0x00]);
