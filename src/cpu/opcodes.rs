@@ -28,6 +28,16 @@ lazy_static! {
 
         OpCode::new(0xaa, "TAX", 1, 2, AddressingMode::NoneAddressing),
 
+        OpCode::new(0xa8, "TAY", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0xba, "TSX", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0x8a, "TXA", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0x9a, "TXS", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0x98, "TYA", 1, 2, AddressingMode::NoneAddressing),
+
         OpCode::new(0xe8, "INX", 1, 2, AddressingMode::NoneAddressing),
 
         OpCode::new(0xa9, "LDA", 2, 2, AddressingMode::Immediate),

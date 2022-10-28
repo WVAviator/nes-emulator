@@ -7,8 +7,8 @@ mod test;
 use self::status::{Flag, ProcessorStatus};
 use std::collections::HashMap;
 
-const STACK_OFFSET: u16 = 0x0100;
-const STACK_RESET: u8 = 0xFD;
+pub const STACK_OFFSET: u16 = 0x0100;
+pub const STACK_RESET: u8 = 0xFD;
 
 pub struct CPU {
     pub register_a: u8, // accumulator - stores results of arithmetic and logic operations
@@ -71,7 +71,7 @@ impl CPU {
             register_y: 0,
             status: ProcessorStatus::new(),
             program_counter: 0,
-            stack_pointer: 0xFF,
+            stack_pointer: STACK_RESET,
             memory: [0; 0xFFFF],
         }
     }
@@ -128,7 +128,7 @@ impl CPU {
         self.register_a = 0;
         self.register_x = 0;
         self.register_y = 0;
-        self.stack_pointer = 0xFF;
+        self.stack_pointer = STACK_RESET;
         self.status.reset();
 
         self.program_counter = self.mem_read_u16(0xFFFC);
@@ -201,6 +201,41 @@ impl CPU {
     fn tax(&mut self) {
         self.register_x = self.register_a;
         self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    // TAY - Transfer Accumulator to Y
+    // Copies the current contents of the accumulator into the Y register and sets the zero and negative flags as appropriate
+    fn tay(&mut self) {
+        self.register_y = self.register_a;
+        self.update_zero_and_negative_flags(self.register_y);
+    }
+
+    // TSX - Transfer Stack Pointer to X
+    // Copies the current contents of the stack register into the X register and sets the zero and negative flags as appropriate.
+    fn tsx(&mut self) {
+        self.register_x = self.stack_pointer;
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    // TXA - Transfer X to accumulator
+    // Copies the current contents of the X register into the accumulator and sets the zero and negative flags as appropriate
+    fn txa(&mut self) {
+        self.register_a = self.register_x;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    // TXS - Transfer X to Stack Pointer
+    // Copies the current contents of the X register into the stack register and sets the zero and negative flags as appropriate.
+    fn txs(&mut self) {
+        self.stack_pointer = self.register_x;
+        self.update_zero_and_negative_flags(self.stack_pointer);
+    }
+
+    // TYA - Transfer Y to accumulator
+    // Copies the current contents of the Y register into the accumulator and sets the zero and negative flags as appropriate
+    fn tya(&mut self) {
+        self.register_a = self.register_y;
+        self.update_zero_and_negative_flags(self.register_a);
     }
 
     // INX - Increment X Register
@@ -282,6 +317,11 @@ impl CPU {
                 "STY" => self.sty(&opcode.mode),
                 "ADC" => self.adc(&opcode.mode),
                 "TAX" => self.tax(),
+                "TAY" => self.tay(),
+                "TSX" => self.tsx(),
+                "TXA" => self.txa(),
+                "TXS" => self.txs(),
+                "TYA" => self.tya(),
                 "INX" => self.inx(),
                 "BRK" => return,
                 _ => todo!(),

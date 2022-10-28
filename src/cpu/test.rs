@@ -81,11 +81,52 @@ fn test_0x94_sty_zero_page_x() {
 }
 
 #[test]
-fn test_0xaa_tax_move_a_to_x() {
+fn test_0xaa_tax_transfer_a_to_x() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![0xa9, 0x0a, 0xaa, 0x00]);
 
-    assert_eq!(cpu.register_x, 10);
+    assert_eq!(cpu.register_x, 0x0a);
+}
+
+#[test]
+fn test_0xba_tsx_transfer_stack_to_x() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![0xba, 0x00]);
+
+    assert_eq!(cpu.register_x, STACK_RESET);
+}
+
+#[test]
+fn test_0xa8_tay_transfer_a_to_y() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![0xa9, 0xff, 0xa8, 0x00]);
+
+    assert_eq!(cpu.register_y, 0xff);
+    assert!(cpu.status.get(Flag::N));
+}
+
+#[test]
+fn test_0x8a_txa_transfer_x_to_a() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![0xa2, 0x0a, 0x8a, 0x00]);
+
+    assert_eq!(cpu.register_a, 0x0a);
+}
+
+#[test]
+fn test_0x9a_txs_transfer_x_to_stack() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![0xa2, 0x0a, 0x9a, 0x00]);
+
+    assert_eq!(cpu.stack_pointer, 0x0a);
+}
+
+#[test]
+fn test_0x98_txa_transfer_y_to_a() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![0xa0, 0x0a, 0x98, 0x00]);
+
+    assert_eq!(cpu.register_a, 0x0a);
 }
 
 #[test]
