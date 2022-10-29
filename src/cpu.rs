@@ -354,6 +354,43 @@ impl CPU {
         }
     }
 
+    // BIT - Bit Test
+    // This instructions is used to test if one or more bits are set in a target memory location. The mask pattern in A is ANDed with the value in memory to set or clear the zero flag, but the result is not kept. Bits 7 and 6 of the value from memory are copied into the N and V flags.
+    fn bit(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        let result = self.register_a & value;
+
+        self.status.update(Flag::Z, result == 0);
+        self.status.match_bit(Flag::V, value);
+        self.status.match_bit(Flag::N, value);
+    }
+
+    // CLC - Clear Carry Flag
+    // Set the carry flag to zero.
+    fn clc(&mut self) {
+        self.status.unset(Flag::C);
+    }
+
+    // CLD - Clear Decimal Mode
+    // Set the decimal mode flag to zero.
+    fn cld(&mut self) {
+        self.status.unset(Flag::D);
+    }
+
+    // CLI - Clear Interrupt Disable
+    // Set the interrupt disable flag to zero.
+    fn cli(&mut self) {
+        self.status.unset(Flag::I);
+    }
+
+    // CLV - Clear Overflow Flag
+    // Set the overflow flag to zero.
+    fn clv(&mut self) {
+        self.status.unset(Flag::V);
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         let sum = self.register_a as u16
             + data as u16
@@ -427,6 +464,7 @@ impl CPU {
                 "ADC" => self.adc(&opcode.mode),
                 "AND" => self.and(&opcode.mode),
                 "ASL" => self.asl(&opcode.mode),
+                "BIT" => self.bit(&opcode.mode),
                 "TAX" => self.tax(),
                 "TAY" => self.tay(),
                 "TSX" => self.tsx(),
@@ -442,6 +480,10 @@ impl CPU {
                 "BPL" => self.bpl(),
                 "BVC" => self.bvc(),
                 "BVS" => self.bvs(),
+                "CLC" => self.clc(),
+                "CLD" => self.cld(),
+                "CLI" => self.cli(),
+                "CLV" => self.clv(),
                 "BRK" => return,
                 _ => todo!(),
             }

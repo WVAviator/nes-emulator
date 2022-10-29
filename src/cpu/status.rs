@@ -241,7 +241,7 @@ impl ProcessorStatus {
         }
     }
 
-    /// Set the set the provided flag only if the provided u8 value has the corresponding bit set, and unset it otherwise.
+    /// Set the provided flag only if the provided u8 value has the corresponding bit set, and unset it otherwise.
     ///
     /// # Example
     ///

@@ -89,6 +89,14 @@ lazy_static! {
         OpCode::new(0x21, "AND", 2, 6, AddressingMode::Indirect_X),
         OpCode::new(0x31, "AND", 2, 5, AddressingMode::Indirect_Y),//+1 page
 
+        OpCode::new(0x24, "BIT", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0x2C, "BIT", 3, 4, AddressingMode::Absolute),
+
+        OpCode::new(0x18, "CLC", 1, 2, AddressingMode::NoneAddressing),
+        OpCode::new(0xD8, "CLD", 1, 2, AddressingMode::NoneAddressing),
+        OpCode::new(0x58, "CLC", 1, 2, AddressingMode::NoneAddressing),
+        OpCode::new(0xB8, "CLV", 1, 2, AddressingMode::NoneAddressing),
+
         OpCode::new(0x90, "BCC", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
         OpCode::new(0xb0, "BCS", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
         OpCode::new(0xf0, "BEQ", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page

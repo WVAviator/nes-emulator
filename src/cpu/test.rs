@@ -306,3 +306,43 @@ fn test_0x70_bvs() {
     cpu.load_and_run(vec![0xa9, 0x7d, 0x69, 0x02, 0x70, 0x02, 0xa9, 0xfe, 0x00]);
     assert_eq!(cpu.register_a, 0xfe);
 }
+
+#[test]
+fn test_0x24_bit_zero_page() {
+    let mut cpu = CPU::new();
+
+    cpu.mem_write(0x50, 0b1010_1010);
+    cpu.load_and_run(vec![0xa9, 0b0000_1111, 0x24, 0x50, 0x00]);
+
+    assert_eq!(cpu.status.get(Flag::Z), false);
+    assert_eq!(cpu.status.get(Flag::V), false);
+    assert_eq!(cpu.status.get(Flag::N), true);
+}
+
+#[test]
+fn test_0x2c_bit_absolute() {
+    let mut cpu = CPU::new();
+
+    cpu.mem_write(0x1234, 0b1100_1100);
+    cpu.load_and_run(vec![0xa9, 0b0011_0011, 0x2c, 0x34, 0x12, 0x00]);
+
+    assert_eq!(cpu.status.get(Flag::Z), true);
+    assert_eq!(cpu.status.get(Flag::V), true);
+    assert_eq!(cpu.status.get(Flag::N), true);
+}
+
+#[test]
+fn test_0x18_clc() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![0xa9, 0xff, 0x69, 0x01, 0x18, 0x00]);
+    assert_eq!(cpu.status.get(Flag::C), false);
+}
+
+#[test]
+fn test_0xb8_clv() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![0xa9, 0x7f, 0x69, 0x01, 0xb8, 0x00]);
+    assert_eq!(cpu.status.get(Flag::V), false);
+}
