@@ -89,6 +89,15 @@ lazy_static! {
         OpCode::new(0x21, "AND", 2, 6, AddressingMode::Indirect_X),
         OpCode::new(0x31, "AND", 2, 5, AddressingMode::Indirect_Y),//+1 page
 
+        OpCode::new(0x90, "BCC", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
+        OpCode::new(0xb0, "BCS", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
+        OpCode::new(0xf0, "BEQ", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
+        OpCode::new(0x30, "BMI", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
+        OpCode::new(0xd0, "BNE", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
+        OpCode::new(0x10, "BPL", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
+        OpCode::new(0x50, "BVC", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
+        OpCode::new(0x70, "BVS", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
+
         OpCode::new(0xa2, "LDX", 2, 2, AddressingMode::Immediate),
         OpCode::new(0xa6, "LDX", 2, 3, AddressingMode::ZeroPage),
         OpCode::new(0xb6, "LDX", 2, 4, AddressingMode::ZeroPage_Y),

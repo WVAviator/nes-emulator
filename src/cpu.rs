@@ -25,6 +25,7 @@ pub struct CPU {
 pub enum AddressingMode {
     Immediate,
     Accumulator,
+    Relative,
     ZeroPage,
     ZeroPage_X,
     ZeroPage_Y,
@@ -80,7 +81,6 @@ impl CPU {
     fn get_operand_address(&self, mode: &AddressingMode) -> u16 {
         match mode {
             AddressingMode::Immediate => self.program_counter,
-            AddressingMode::Accumulator => panic!("Attempting to extract address from accumulator addressing mode. Handle this separately."),
             AddressingMode::ZeroPage => self.mem_read(self.program_counter) as u16,
             AddressingMode::ZeroPage_X => {
                 let pos = self.mem_read(self.program_counter);
@@ -105,7 +105,7 @@ impl CPU {
             }
             AddressingMode::Indirect_X => {
                 let base = self.mem_read(self.program_counter);
-
+                
                 let ptr: u8 = (base as u8).wrapping_add(self.register_x);
                 let lo = self.mem_read(ptr as u16);
                 let hi = self.mem_read(ptr.wrapping_add(1) as u16);
@@ -113,13 +113,15 @@ impl CPU {
             }
             AddressingMode::Indirect_Y => {
                 let base = self.mem_read(self.program_counter);
-
+                
                 let lo = self.mem_read(base as u16);
                 let hi = self.mem_read((base as u8).wrapping_add(1) as u16);
                 let deref_base = (hi as u16) << 8 | (lo as u16);
                 let deref = deref_base.wrapping_add(self.register_y as u16);
                 deref
             }
+            AddressingMode::Accumulator => panic!("Attempting to extract address from accumulator addressing mode. Handle this separately."),
+            AddressingMode::Relative => panic!("Attempting to extract absolute address from relative offset. Handle this separately."),
             AddressingMode::NoneAddressing => {
                 panic!("mode {:?} is not supported", mode);
             }
@@ -247,6 +249,8 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_x);
     }
 
+    // ADC - Add with Carry
+    // This instruction adds the contents of a memory location to the accumulator together with the carry bit. If overflow occurs the carry bit is set, this enables multiple byte addition to be performed.
     fn adc(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
@@ -286,6 +290,70 @@ impl CPU {
         self.update_zero_and_negative_flags(result);
     }
 
+    // BCC - Branch if Carry Clear
+    // If the carry flag is clear then add the relative displacement to the program counter to cause a branch to a new location.
+    fn bcc(&mut self) {
+        if !self.status.get(Flag::C) {
+            self.branch();
+        }
+    }
+
+    // BCS - Branch if Carry Set
+    // If the carry flag is set then add the relative displacement to the program counter to cause a branch to a new location.
+    fn bcs(&mut self) {
+        if self.status.get(Flag::C) {
+            self.branch();
+        }
+    }
+
+    // BEQ - Branch if Equal
+    // If the zero flag is set then add the relative displacement to the program counter to cause a branch to a new location.
+    fn beq(&mut self) {
+        if self.status.get(Flag::Z) {
+            self.branch();
+        }
+    }
+
+    // BMI - Branch if Minus
+    // If the negative flag is set then add the relative displacement to the program counter to cause a branch to a new location.
+    fn bmi(&mut self) {
+        if self.status.get(Flag::N) {
+            self.branch();
+        }
+    }
+
+    // BNE - Branch not Equal
+    // If the zero flag is clear then add the relative displacement to the program counter to cause a branch to a new location.
+    fn bne(&mut self) {
+        if !self.status.get(Flag::Z) {
+            self.branch();
+        }
+    }
+
+    // BPL - Branch if Positive
+    // If the negative flag is clear then add the relative displacement to the program counter to cause a branch to a new location.
+    fn bpl(&mut self) {
+        if !self.status.get(Flag::N) {
+            self.branch();
+        }
+    }
+
+    // BVC - Branch if Overflow Clear
+    // If the overflow flag is clear then add the relative displacement to the program counter to cause a branch to a new location.
+    fn bvc(&mut self) {
+        if !self.status.get(Flag::V) {
+            self.branch();
+        }
+    }
+
+    // BVS - Branch if Overflow Set
+    // If the overflow flag is set then add the relative displacement to the program counter to cause a branch to a new location.
+    fn bvs(&mut self) {
+        if self.status.get(Flag::V) {
+            self.branch();
+        }
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         let sum = self.register_a as u16
             + data as u16
@@ -299,6 +367,12 @@ impl CPU {
 
         self.register_a = result;
         self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    fn branch(&mut self) {
+        let jump: i8 = self.mem_read(self.program_counter) as i8;
+        let jump_addr = self.program_counter.wrapping_add(1).wrapping_add(jump as u16);
+        self.program_counter = jump_addr;
     }
 
     fn stack_push(&mut self, data: u8) {
@@ -360,6 +434,14 @@ impl CPU {
                 "TXS" => self.txs(),
                 "TYA" => self.tya(),
                 "INX" => self.inx(),
+                "BCC" => self.bcc(),
+                "BCS" => self.bcs(),
+                "BEQ" => self.beq(),
+                "BMI" => self.bmi(),
+                "BNE" => self.bne(),
+                "BPL" => self.bpl(),
+                "BVC" => self.bvc(),
+                "BVS" => self.bvs(),
                 "BRK" => return,
                 _ => todo!(),
             }
