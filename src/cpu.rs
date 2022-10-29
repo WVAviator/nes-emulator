@@ -391,6 +391,39 @@ impl CPU {
         self.status.unset(Flag::V);
     }
 
+    // CMP - Compare
+    // This instruction compares the contents of the accumulator with another memory held value and sets the zero and carry flags as appropriate.
+    fn cmp(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        self.status.update(Flag::C, self.register_a >= data);
+        self.status.update(Flag::Z, self.register_a == data);
+        self.status.match_bit(Flag::N, self.register_a - data);
+    }
+
+    // CPX - Compare X Register
+    // This instruction compares the contents of the X register with another memory held value and sets the zero and carry flags as appropriate.
+    fn cpx(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        self.status.update(Flag::C, self.register_x >= data);
+        self.status.update(Flag::Z, self.register_x == data);
+        self.status.match_bit(Flag::N, self.register_x - data);
+    }
+
+    // CPY - Compare Y Register
+    // This instruction compares the contents of the Y register with another memory held value and sets the zero and carry flags as appropriate.
+    fn cpy(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        self.status.update(Flag::C, self.register_y >= data);
+        self.status.update(Flag::Z, self.register_y == data);
+        self.status.match_bit(Flag::N, self.register_y - data);
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         let sum = self.register_a as u16
             + data as u16
@@ -465,6 +498,9 @@ impl CPU {
                 "AND" => self.and(&opcode.mode),
                 "ASL" => self.asl(&opcode.mode),
                 "BIT" => self.bit(&opcode.mode),
+                "CMP" => self.cmp(&opcode.mode),
+                "CPX" => self.cpx(&opcode.mode),
+                "CPY" => self.cpy(&opcode.mode),
                 "TAX" => self.tax(),
                 "TAY" => self.tay(),
                 "TSX" => self.tsx(),

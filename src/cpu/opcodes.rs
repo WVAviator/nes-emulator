@@ -97,6 +97,23 @@ lazy_static! {
         OpCode::new(0x58, "CLC", 1, 2, AddressingMode::NoneAddressing),
         OpCode::new(0xB8, "CLV", 1, 2, AddressingMode::NoneAddressing),
 
+        OpCode::new(0xc9, "CMP", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xc5, "CMP", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xd5, "CMP", 2, 4, AddressingMode::ZeroPage_X),
+        OpCode::new(0xcd, "CMP", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0xdd, "CMP", 3, 4, AddressingMode::Absolute_X), // +1 page
+        OpCode::new(0xd9, "CMP", 3, 4, AddressingMode::Absolute_Y), // +1 page
+        OpCode::new(0xc1, "CMP", 2, 6, AddressingMode::Indirect_X),
+        OpCode::new(0xd1, "CMP", 2, 5, AddressingMode::Indirect_Y), // +1 page
+
+        OpCode::new(0xe0, "CPX", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xe4, "CPX", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xec, "CPX", 3, 4, AddressingMode::Absolute),
+
+        OpCode::new(0xc0, "CPY", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xc4, "CPY", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xcc, "CPY", 3, 4, AddressingMode::Absolute),
+
         OpCode::new(0x90, "BCC", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
         OpCode::new(0xb0, "BCS", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
         OpCode::new(0xf0, "BEQ", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page

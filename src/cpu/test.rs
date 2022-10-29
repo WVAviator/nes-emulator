@@ -346,3 +346,56 @@ fn test_0xb8_clv() {
     cpu.load_and_run(vec![0xa9, 0x7f, 0x69, 0x01, 0xb8, 0x00]);
     assert_eq!(cpu.status.get(Flag::V), false);
 }
+
+#[test]
+fn test_0xc9_cmp_immediate() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![0xa9, 0x02, 0xc9, 0x01, 0x00]);
+    assert_eq!(cpu.status.get(Flag::C), true);
+    assert_eq!(cpu.status.get(Flag::Z), false);
+    assert_eq!(cpu.status.get(Flag::N), false);
+}
+
+#[test]
+fn test_0xc5_cmp_zero_page() {
+    let mut cpu = CPU::new();
+
+    cpu.mem_write(0x05, 0x06);
+    cpu.load_and_run(vec![0xa9, 0x06, 0xc5, 0x05, 0x00]);
+    assert_eq!(cpu.status.get(Flag::C), true);
+    assert_eq!(cpu.status.get(Flag::Z), true);
+    assert_eq!(cpu.status.get(Flag::N), false);
+}
+
+#[test]
+fn test_0xcd_cmp_absolute() {
+    let mut cpu = CPU::new();
+
+    cpu.mem_write(0x1234, 0x01);
+    cpu.load_and_run(vec![0xa9, 0xff, 0xcd, 0x34, 0x12, 0x00]);
+    assert_eq!(cpu.status.get(Flag::C), true);
+    assert_eq!(cpu.status.get(Flag::Z), false);
+    assert_eq!(cpu.status.get(Flag::N), true);
+}
+
+#[test]
+fn test_0xe0_cpx_immediate() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![0xa2, 0x05, 0xe0, 0x05, 0x00]);
+    assert_eq!(cpu.status.get(Flag::C), true);
+    assert_eq!(cpu.status.get(Flag::Z), true);
+    assert_eq!(cpu.status.get(Flag::N), false);
+}
+
+#[test]
+fn test_0xc4_cpy_zero_page() {
+    let mut cpu = CPU::new();
+
+    cpu.mem_write(0xde, 0x04);
+    cpu.load_and_run(vec![0xa0, 0x05, 0xc4, 0xde, 0x00]);
+    assert_eq!(cpu.status.get(Flag::C), true);
+    assert_eq!(cpu.status.get(Flag::Z), false);
+    assert_eq!(cpu.status.get(Flag::N), false);
+}
