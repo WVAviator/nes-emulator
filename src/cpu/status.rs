@@ -322,6 +322,11 @@ impl ProcessorStatus {
         self.current
     }
 
+    /// If the provided flag is set, this will return a value with only that associated bit set. Otherwise it returns 0.
+    pub fn as_bit_if_set(&self, flag: Flag) -> u8 {
+        self.current & flag.as_u8()
+    }
+
     /// Updates the current u8 value of the status register to the provided u8 value.
     pub fn restore(&mut self, value: u8) {
         self.current = value;
@@ -455,5 +460,14 @@ mod status_tests {
     #[should_panic]
     fn flag_panics_when_converting_invalid_value() {
         Flag::from_u8(0b1101_1011);
+    }
+
+    #[test]
+    fn as_bit_if_set() {
+        let mut status = ProcessorStatus::from(0b1100_1100);
+        assert_eq!(status.as_bit_if_set(Flag::V), 0b0100_0000);
+
+        status.restore(0b0011_0011);
+        assert_eq!(status.as_bit_if_set(Flag::N), 0b0000_0000);
     }
 }

@@ -535,8 +535,8 @@ impl CPU {
             }
         };
 
-        let bit_1_set = 0b0000_0001 & orig != 0;
-        self.status.update(Flag::C, bit_1_set);
+        let bit_0_set = 0b0000_0001 & orig != 0;
+        self.status.update(Flag::C, bit_0_set);
 
         self.update_zero_and_negative_flags(result);
     }
@@ -565,6 +565,107 @@ impl CPU {
     // Pushes a copy of the status flags on to the stack.
     fn php(&mut self) {
         self.stack_push(self.status.value());
+    }
+
+    // PLA - Pull Accumulator
+    // Pulls an 8 bit value from the stack and into the accumulator. The zero and negative flags are set as appropriate.
+    fn pla(&mut self) {
+        self.register_a = self.stack_pop();
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    // PLP - Pull Processor Status
+    // Pulls an 8 bit value from the stack and into the processor flags. The flags will take on new states as determined by the value pulled.
+    fn plp(&mut self) {
+        let flags = self.stack_pop();
+        self.status.restore(flags);
+    }
+
+    // ROL - Rotate Left
+    // Move each of the bits in either A or M one place to the left. Bit 0 is filled with the current value of the carry flag whilst the old bit 7 becomes the new carry flag value.
+    fn rol(&mut self, mode: &AddressingMode) {
+        let (orig, result) = match mode {
+            AddressingMode::Accumulator => {
+                let orig = self.register_a;
+                self.register_a = (self.register_a << 1) | self.status.as_bit_if_set(Flag::C);
+                (orig, self.register_a)
+            }
+            _ => {
+                let addr = self.get_operand_address(mode);
+                let orig = self.mem_read(addr);
+                let data = (orig << 1) | self.status.as_bit_if_set(Flag::C);
+
+                self.mem_write(addr, data);
+                (orig, data)
+            }
+        };
+
+        let bit_7_set = 0b1000_0000 & orig != 0;
+        self.status.update(Flag::C, bit_7_set);
+
+        self.update_zero_and_negative_flags(result);
+    }
+
+    // ROR - Rotate Right
+    // Move each of the bits in either A or M one place to the right. Bit 7 is filled with the current value of the carry flag whilst the old bit 0 becomes the new carry flag value.
+    fn ror(&mut self, mode: &AddressingMode) {
+        let (orig, result) = match mode {
+            AddressingMode::Accumulator => {
+                let orig = self.register_a;
+                self.register_a = (self.register_a >> 1) | if self.status.get(Flag::C) { 0b1000_0000 } else { 0 };
+                (orig, self.register_a)
+            }
+            _ => {
+                let addr = self.get_operand_address(mode);
+                let orig = self.mem_read(addr);
+                let data = (orig >> 1) | if self.status.get(Flag::C) { 0b1000_0000 } else { 0 };
+
+                self.mem_write(addr, data);
+                (orig, data)
+            }
+        };
+
+        let bit_0_set = 0b0000_0001 & orig != 0;
+        self.status.update(Flag::C, bit_0_set);
+
+        self.update_zero_and_negative_flags(result);
+    }
+
+    // RTI - Return from Interrupt
+    // The RTI instruction is used at the end of an interrupt processing routine. It pulls the processor flags from the stack followed by the program counter.
+    fn rti(&mut self) {
+        let restored_status = self.stack_pop();
+        let restored_program_counter = self.stack_pop_u16();
+
+        self.status.restore(restored_status);
+        self.program_counter = restored_program_counter.wrapping_add(1);
+    }
+
+    // SBC - Subtract with Carry
+    // This instruction subtracts the contents of a memory location to the accumulator together with the not of the carry bit. If overflow occurs the carry bit is clear, this enables multiple byte subtraction to be performed.
+    fn sbc(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        self.add_to_register_a(((data as i8).wrapping_neg().wrapping_sub(1)) as u8);
+    }
+
+    // SEC - Set Carry Flag
+    // Set the carry flag to one
+    fn sec(&mut self) {
+        self.status.set(Flag::C);
+    }
+
+    // SED - Set Decimal Flag
+    // Set the decimal flag to one
+    fn sed(&mut self) {
+        self.status.set(Flag::D);
+    }
+
+    // SEC - Set Interrupt Flag
+    // Set the interrupt disable flag to one
+    fn sei(&mut self) {
+        self.status.set(Flag::I);
     }
 
     fn add_to_register_a(&mut self, data: u8) {
@@ -650,6 +751,9 @@ impl CPU {
                 "INC" => self.inc(&opcode.mode),
                 "JMP" => self.jmp(&opcode.mode),
                 "LSR" => self.lsr(&opcode.mode),
+                "ROL" => self.rol(&opcode.mode),
+                "ROR" => self.ror(&opcode.mode),
+                "SBC" => self.sbc(&opcode.mode),
                 "TAX" => self.tax(),
                 "TAY" => self.tay(),
                 "TSX" => self.tsx(),
@@ -676,6 +780,12 @@ impl CPU {
                 "RTS" => self.rts(),
                 "PHA" => self.pha(),
                 "PHP" => self.php(),
+                "PLA" => self.pla(),
+                "PLP" => self.plp(),
+                "RTI" => self.rti(),
+                "SEC" => self.sec(),
+                "SED" => self.sed(),
+                "SEI" => self.sei(),
                 "NOP" => self.nop(),
                 "BRK" => return,
                 _ => todo!(),

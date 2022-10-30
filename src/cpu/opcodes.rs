@@ -74,6 +74,15 @@ lazy_static! {
         OpCode::new(0x61, "ADC", 2, 6, AddressingMode::Indirect_X),
         OpCode::new(0x71, "ADC", 2, 5, AddressingMode::Indirect_Y),//+1 page
 
+        OpCode::new(0xe9, "SBC", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xe5, "SBC", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xf5, "SBC", 2, 4, AddressingMode::ZeroPage_X),
+        OpCode::new(0xed, "SBC", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0xfd, "SBC", 3, 4, AddressingMode::Absolute_X),//+1 page
+        OpCode::new(0xf9, "SBC", 3, 4, AddressingMode::Absolute_Y),//+1 page
+        OpCode::new(0xe1, "SBC", 2, 6, AddressingMode::Indirect_X),
+        OpCode::new(0xf1, "SBC", 2, 5, AddressingMode::Indirect_Y),//+1 page
+
         OpCode::new(0x0a, "ASL", 1, 2, AddressingMode::Accumulator),
         OpCode::new(0x06, "ASL", 2, 5, AddressingMode::ZeroPage),
         OpCode::new(0x16, "ASL", 2, 6, AddressingMode::ZeroPage_X),
@@ -150,6 +159,18 @@ lazy_static! {
         OpCode::new(0xac, "LDY", 3, 4, AddressingMode::Absolute),
         OpCode::new(0xbc, "LDY", 3, 4, AddressingMode::Absolute_X),
 
+        OpCode::new(0x2a, "ROL", 1, 2, AddressingMode::Accumulator),
+        OpCode::new(0x26, "ROL", 2, 5, AddressingMode::ZeroPage),
+        OpCode::new(0x36, "ROL", 2, 6, AddressingMode::ZeroPage_X),
+        OpCode::new(0x2e, "ROL", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0x3e, "ROL", 3, 7, AddressingMode::Absolute_X),
+
+        OpCode::new(0x6a, "ROR", 1, 2, AddressingMode::Accumulator),
+        OpCode::new(0x66, "ROR", 2, 5, AddressingMode::ZeroPage),
+        OpCode::new(0x76, "ROR", 2, 6, AddressingMode::ZeroPage_X),
+        OpCode::new(0x6e, "ROR", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0x7e, "ROR", 3, 7, AddressingMode::Absolute_X),
+
         OpCode::new(0x49, "EOR", 2, 2, AddressingMode::Immediate),
         OpCode::new(0x45, "EOR", 2, 3, AddressingMode::ZeroPage),
         OpCode::new(0x55, "EOR", 2, 4, AddressingMode::ZeroPage_X),
@@ -184,8 +205,17 @@ lazy_static! {
 
         OpCode::new(0x48, "PHA", 1, 3, AddressingMode::NoneAddressing),
         OpCode::new(0x08, "PHP", 1, 3, AddressingMode::NoneAddressing),
+        OpCode::new(0x68, "PLA", 1, 4, AddressingMode::NoneAddressing),
+        OpCode::new(0x28, "PLP", 1, 4, AddressingMode::NoneAddressing),
+
+        OpCode::new(0x40, "RTI", 1, 6, AddressingMode::NoneAddressing),
 
         OpCode::new(0xea, "NOP", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0x38, "SEC", 1, 2, AddressingMode::NoneAddressing),
+        OpCode::new(0xf8, "SED", 1, 2, AddressingMode::NoneAddressing),
+        OpCode::new(0x78, "SEI", 1, 2, AddressingMode::NoneAddressing),
+
 
     ];
 
