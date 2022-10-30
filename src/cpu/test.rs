@@ -539,3 +539,74 @@ fn test_0x60_rts() {
     assert_eq!(cpu.register_x, 0x07);
     assert_eq!(cpu.stack_pointer, STACK_RESET);
 }
+
+#[test]
+fn test_0x4a_lsr_accumulator() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![0xa9, 0b0110_1001, 0x4a, 0x00]);
+
+    assert_eq!(cpu.register_a, 0b0011_0100);
+    assert_eq!(cpu.status.get(Flag::C), true);
+}
+
+#[test]
+fn test_0x46_lsr_zero_page() {
+    let mut cpu = CPU::new();
+
+    cpu.mem_write(0x99, 0b1100_1100);
+    cpu.load_and_run(vec![0x46, 0x99, 0x00]);
+
+    assert_eq!(cpu.mem_read(0x99), 0b0110_0110);
+    assert_eq!(cpu.status.get(Flag::C), false);
+}
+
+#[test]
+fn test_0xea_nop() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![0xea, 0xea, 0xa9, 0x02, 0xea, 0x00]);
+
+    assert_eq!(cpu.register_a, 0x02);
+}
+
+#[test]
+fn test_0x09_ora_immediate() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![0xa9, 0b1001_1001, 0x09, 0b0110_1010, 0x00]);
+
+    assert_eq!(cpu.register_a, 0b1111_1011);
+    assert_eq!(cpu.status.get(Flag::N), true);
+}
+
+#[test]
+fn test_0x0d_ora_absolute() {
+    let mut cpu = CPU::new();
+
+    cpu.mem_write(0x0123, 0b0001_1110);
+    cpu.load_and_run(vec![0xa9, 0b0100_0000, 0x0d, 0x23, 0x01, 0x00]);
+
+    assert_eq!(cpu.register_a, 0b0101_1110); // 0110_0011
+    assert_eq!(cpu.status.get(Flag::N), false);
+}
+
+#[test]
+fn test_0x48_pha() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![0xa9, 0xdd, 0x48, 0x00]);
+
+    assert_eq!(cpu.mem_read(0x0100 | (cpu.stack_pointer + 1) as u16), 0xdd);
+    assert_eq!(cpu.stack_pop(), 0xdd);
+}
+
+#[test]
+fn test_0x08_php() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![0xa9, 0xff, 0x69, 0x01, 0x08, 0x00]);
+
+    assert_eq!(0b0000_0011, cpu.stack_pop());
+    assert_eq!(0b0000_0011, cpu.status.value());
+}

@@ -517,6 +517,56 @@ impl CPU {
         self.program_counter = pc_addr.wrapping_add(1);
     }
 
+    // LSR - Logical Shift Right
+    // Each of the bits in A or M is shift one place to the right. The bit that was in bit 0 is shifted into the carry flag. Bit 7 is set to zero.
+    fn lsr(&mut self, mode: &AddressingMode) {
+        let (orig, result) = match mode {
+            AddressingMode::Accumulator => {
+                let orig = self.register_a;
+                self.register_a = self.register_a >> 1;
+                (orig, self.register_a)
+            }
+            _ => {
+                let addr = self.get_operand_address(mode);
+                let orig = self.mem_read(addr);
+                let data = orig >> 1;
+                self.mem_write(addr, data);
+                (orig, data)
+            }
+        };
+
+        let bit_1_set = 0b0000_0001 & orig != 0;
+        self.status.update(Flag::C, bit_1_set);
+
+        self.update_zero_and_negative_flags(result);
+    }
+
+    // NOP - No Operation
+    // The NOP instruction causes no changes to the processor other than the normal incrementing of the program counter to the next instruction.
+    fn nop(&self) { }
+
+    // ORA - Logical Inclusive OR
+    // An inclusive OR is performed, bit by bit, on the accumulator contents using the contents of a byte of memory.
+    fn ora(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        self.register_a = self.register_a | data;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    // PHA - Push Accumulator
+    // Pushes a copy of the accumulator on to the stack.
+    fn pha(&mut self) {
+        self.stack_push(self.register_a);
+    }
+
+    // PHP - Push Processor Status
+    // Pushes a copy of the status flags on to the stack.
+    fn php(&mut self) {
+        self.stack_push(self.status.value());
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         let sum = self.register_a as u16
             + data as u16
@@ -596,8 +646,10 @@ impl CPU {
                 "CPY" => self.cpy(&opcode.mode),
                 "DEC" => self.dec(&opcode.mode),
                 "EOR" => self.eor(&opcode.mode),
+                "ORA" => self.ora(&opcode.mode),
                 "INC" => self.inc(&opcode.mode),
                 "JMP" => self.jmp(&opcode.mode),
+                "LSR" => self.lsr(&opcode.mode),
                 "TAX" => self.tax(),
                 "TAY" => self.tay(),
                 "TSX" => self.tsx(),
@@ -622,6 +674,9 @@ impl CPU {
                 "DEX" => self.dex(),
                 "DEY" => self.dey(),
                 "RTS" => self.rts(),
+                "PHA" => self.pha(),
+                "PHP" => self.php(),
+                "NOP" => self.nop(),
                 "BRK" => return,
                 _ => todo!(),
             }
