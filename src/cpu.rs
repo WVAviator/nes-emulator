@@ -477,6 +477,31 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_y);
     }
 
+    // JMP - Jump
+    // Sets the program counter to the address specified by the operand.
+    fn jmp(&mut self, mode: &AddressingMode) {
+        let addr = self.mem_read_u16(self.program_counter);
+
+        match mode {
+            AddressingMode::Absolute => {
+                self.program_counter = addr;
+            }
+            _ => {
+                // An original 6502 has does not correctly fetch the target address if the indirect vector falls on a page boundary (e.g. $xxFF where xx is any value from $00 to $FF). In this case fetches the LSB from $xxFF as expected but takes the MSB from $xx00. This is fixed in some later chips like the 65SC02 so for compatibility always ensure the indirect vector is not at the end of the page.
+
+                let indirect_ref = if addr & 0x00FF == 0x00FF {
+                    let lo = self.mem_read(addr);
+                    let hi = self.mem_read(addr & 0xFF00);
+                    (hi as u16) << 8 | (lo as u16)
+                } else {
+                    self.mem_read_u16(addr)
+                };
+
+                self.program_counter = indirect_ref;
+            }
+        }
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         let sum = self.register_a as u16
             + data as u16
@@ -557,6 +582,7 @@ impl CPU {
                 "DEC" => self.dec(&opcode.mode),
                 "EOR" => self.eor(&opcode.mode),
                 "INC" => self.inc(&opcode.mode),
+                "JMP" => self.jmp(&opcode.mode),
                 "TAX" => self.tax(),
                 "TAY" => self.tay(),
                 "TSX" => self.tsx(),
