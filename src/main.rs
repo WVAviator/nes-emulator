@@ -8,6 +8,7 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::EventPump;
 use std::{thread, time};
 
+pub mod bus;
 pub mod cpu;
 
 #[macro_use]

@@ -18,17 +18,6 @@ fn test_0xa5_lda_zero_page() {
 }
 
 #[test]
-fn test_0xa1_lda_indirect_x() {
-    let mut cpu = CPU::new();
-    cpu.mem_write(0x01, 0x05);
-    cpu.mem_write(0x02, 0x07);
-    cpu.mem_write(0x0705, 0x0a);
-    cpu.load_and_run(vec![0xa2, 0x01, 0xa1, 0x00, 0x00]);
-
-    assert_eq!(cpu.register_a, 0x0a);
-}
-
-#[test]
 fn test_0xa2_ldx_immediate() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![0xa2, 0xfd, 0x00]);
@@ -444,18 +433,6 @@ fn test_0x45_eor_zero_page() {
 
     cpu.mem_write(0x30, 0b1010_1010);
     cpu.load_and_run(vec![0xa9, 0b1100_1100, 0x45, 0x30, 0x00]);
-
-    assert_eq!(cpu.register_a, 0b0110_0110);
-}
-
-#[test]
-fn test_0x51_eor_indirect_y() {
-    let mut cpu = CPU::new();
-
-    cpu.mem_write(0x0704, 0b1010_1010);
-    cpu.mem_write(0x01, 0x03);
-    cpu.mem_write(0x02, 0x07);
-    cpu.load_and_run(vec![0xa0, 0x01, 0xa9, 0b1100_1100, 0x51, 0x01, 0x00]);
 
     assert_eq!(cpu.register_a, 0b0110_0110);
 }
