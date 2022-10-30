@@ -515,3 +515,27 @@ fn test_0x6c_jmp_indirect_page_bug() {
 
     assert_eq!(cpu.mem_read(0x0200), 0x03);
 }
+
+#[test]
+fn test_0x20_jsr() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![0x20, 0x05, 0x80, 0xa9, 0x05, 0xa2, 0x01, 0x00]);
+
+    assert_eq!(cpu.register_a, 0x00);
+    assert_eq!(cpu.register_x, 0x01);
+    assert_eq!(cpu.stack_pop_u16(), 0x8002);
+}
+
+#[test]
+fn test_0x60_rts() {
+    let mut cpu = CPU::new();
+
+    cpu.load_and_run(vec![
+        0xa2, 0x05, 0x20, 0x08, 0x80, 0xa9, 0x01, 0x00, 0xe8, 0xe8, 0x60, 0xa9, 0x02,
+    ]);
+
+    assert_eq!(cpu.register_a, 0x01);
+    assert_eq!(cpu.register_x, 0x07);
+    assert_eq!(cpu.stack_pointer, STACK_RESET);
+}

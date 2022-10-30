@@ -502,6 +502,21 @@ impl CPU {
         }
     }
 
+    // JSR - Jump to Subroutine
+    // The JSR instruction pushes the address (minus one) of the return point on to the stack and then sets the program counter to the target memory address.
+    fn jsr(&mut self) {
+        self.stack_push_u16(self.program_counter.wrapping_add(1));
+        let addr = self.mem_read_u16(self.program_counter);
+        self.program_counter = addr;
+    }
+
+    // RTS - Return from Subroutine
+    // The RTS instruction is used at the end of a subroutine to return to the calling routine. It pulls the program counter (minus one) from the stack.
+    fn rts(&mut self) {
+        let pc_addr = self.stack_pop_u16();
+        self.program_counter = pc_addr.wrapping_add(1);
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         let sum = self.register_a as u16
             + data as u16
@@ -591,6 +606,7 @@ impl CPU {
                 "TYA" => self.tya(),
                 "INX" => self.inx(),
                 "INY" => self.iny(),
+                "JSR" => self.jsr(),
                 "BCC" => self.bcc(),
                 "BCS" => self.bcs(),
                 "BEQ" => self.beq(),
@@ -605,6 +621,7 @@ impl CPU {
                 "CLV" => self.clv(),
                 "DEX" => self.dex(),
                 "DEY" => self.dey(),
+                "RTS" => self.rts(),
                 "BRK" => return,
                 _ => todo!(),
             }

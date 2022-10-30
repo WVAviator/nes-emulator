@@ -163,6 +163,10 @@ lazy_static! {
         OpCode::new(0x4c, "JMP", 3, 3, AddressingMode::Absolute),
         OpCode::new(0x6c, "JMP", 3, 5, AddressingMode::NoneAddressing),
 
+        OpCode::new(0x20, "JSR", 3, 6, AddressingMode::Absolute),
+
+        OpCode::new(0x60, "RTS", 1, 6, AddressingMode::Absolute),
+
     ];
 
     pub static ref OPCODES_MAP: HashMap<u8, &'static OpCode> = {
