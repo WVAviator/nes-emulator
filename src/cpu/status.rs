@@ -18,6 +18,8 @@
 //! | Flag::V | 0b0100_0000        | Overflow Flag      |
 //! | Flag::N | 0b1000_0000        | Negative Flag      |
 
+const STATUS_RESET: u8 = 0b0010_0100;
+
 /// Represents the individual flags of a 6502 status register
 #[derive(PartialEq, Debug)]
 pub enum Flag {
@@ -136,7 +138,9 @@ pub struct ProcessorStatus {
 impl ProcessorStatus {
     /// Creates and returns a new status register for a 6502 CPU with all bit flags unset.
     pub fn new() -> Self {
-        ProcessorStatus { current: 0 }
+        ProcessorStatus {
+            current: STATUS_RESET,
+        }
     }
 
     /// Creates and returns a new status register for a 6502 CPU with flags set to the provided u8 binary value.
@@ -163,7 +167,7 @@ impl ProcessorStatus {
     /// # assert_eq!(status.value(), 0b1000_0011);
     /// ```
     pub fn from_flags(flags: Vec<Flag>) -> Self {
-        let mut status = ProcessorStatus::new();
+        let mut status = ProcessorStatus::from(0);
         status.set_many(flags);
         status
     }
@@ -334,7 +338,7 @@ impl ProcessorStatus {
 
     /// Resets the current u8 value of the status register to 0, unsetting all flags.
     pub fn reset(&mut self) {
-        self.restore(0b0000_0000);
+        self.restore(STATUS_RESET);
     }
 }
 
@@ -344,7 +348,7 @@ mod status_tests {
 
     #[test]
     fn initialize_status() {
-        let status = ProcessorStatus::new();
+        let status = ProcessorStatus::from(0);
         assert_eq!(status.current, 0b0000_0000);
         let status = ProcessorStatus::from(0b1100_0011);
         assert_eq!(status.current, 0b1100_0011);
@@ -370,7 +374,7 @@ mod status_tests {
 
     #[test]
     fn set_status() {
-        let mut status = ProcessorStatus::new();
+        let mut status = ProcessorStatus::from(0);
         assert_eq!(status.current, 0b0000_0000);
         status.set(Flag::C);
         assert_eq!(status.current, 0b0000_0001);
@@ -380,7 +384,7 @@ mod status_tests {
 
     #[test]
     fn match_bit() {
-        let mut status = ProcessorStatus::new();
+        let mut status = ProcessorStatus::from(0);
         status.match_bit(Flag::V, 0b1100_1100);
         assert_eq!(status.current, 0b0100_0000);
         status.match_bit(Flag::C, 0b0000_0011);
@@ -391,7 +395,7 @@ mod status_tests {
 
     #[test]
     fn set_many() {
-        let mut status = ProcessorStatus::new();
+        let mut status = ProcessorStatus::from(0);
         status.set_many(vec![Flag::V, Flag::Z, Flag::C]);
         assert_eq!(status.current, 0b0100_0011);
     }
@@ -429,7 +433,7 @@ mod status_tests {
 
     #[test]
     fn update_many() {
-        let mut status = ProcessorStatus::new();
+        let mut status = ProcessorStatus::from(0);
         status.update_many(vec![Flag::C, Flag::Z, Flag::I, Flag::D], true);
         assert_eq!(status.current, 0b0000_1111);
         status.update_many(vec![Flag::C, Flag::I], false);
@@ -444,7 +448,7 @@ mod status_tests {
         status.restore(0b0000_1111);
         assert_eq!(status.current, 0b0000_1111);
         status.reset();
-        assert_eq!(status.current, 0b0000_0000);
+        assert_eq!(status.current, STATUS_RESET);
     }
 
     #[test]

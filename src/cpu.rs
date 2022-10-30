@@ -4,7 +4,7 @@ pub mod status;
 #[cfg(test)]
 mod test;
 
-use crate::bus::Bus;
+use crate::{bus::Bus, rom::Rom};
 
 use self::status::{Flag, ProcessorStatus};
 use std::collections::HashMap;
@@ -97,24 +97,16 @@ impl CPU {
         self.program_counter = self.mem_read_u16(0xFFFC);
     }
 
-    // pub fn load(&mut self, program: Vec<u8>, start_address: u16) {
-    //     // Load program code into memory, starting at 0x8000 address
-    //     self.memory[(start_address as usize)..((start_address as usize) + program.len())].copy_from_slice(&program[..]);
-    //     self.mem_write_u16(0xFFFC, start_address);
+    pub fn load_rom(&mut self, rom: Rom) {
+        self.bus.load_cartridge(rom);
+    }
 
-    //     // self.memory[0x0600..(0x0600 + program.len())].copy_from_slice(&program[..]);
-    //     // self.mem_write_u16(0xFFFC, 0x0600);
-    // }
-
-    pub fn load(&mut self, program: Vec<u8>, start_address: u16) {
-        for i in 0..(program.len() as u16) {
-            self.mem_write(start_address + i, program[i as usize]);
-        }
-        self.mem_write_u16(0xFFFC, start_address);
+    pub fn load(&mut self, program: Vec<u8>) {
+        self.load_rom(Rom::generate_standalone_rom(program));
     }
 
     pub fn load_and_run(&mut self, program: Vec<u8>) {
-        self.load(program, 0x8000);
+        self.load(program);
         self.reset();
         self.run()
     }

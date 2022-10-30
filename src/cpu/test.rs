@@ -56,9 +56,9 @@ fn test_0x85_sta_zero_page() {
 #[test]
 fn test_0x8e_stx_absolute() {
     let mut cpu = CPU::new();
-    cpu.load_and_run(vec![0xa2, 0xee, 0x8e, 0x45, 0x23, 0x00]);
+    cpu.load_and_run(vec![0xa2, 0xee, 0x8e, 0x34, 0x12, 0x00]);
 
-    assert_eq!(cpu.mem_read(0x2345), 0xee);
+    assert_eq!(cpu.mem_read(0x1234), 0xee);
 }
 
 #[test]
@@ -584,8 +584,10 @@ fn test_0x08_php() {
 
     cpu.load_and_run(vec![0xa9, 0xff, 0x69, 0x01, 0x08, 0x00]);
 
-    assert_eq!(0b0000_0011, cpu.stack_pop());
-    assert_eq!(0b0000_0011, cpu.status.value());
+    let status = cpu.stack_pop();
+    assert!(status & 0b0000_0011 == 0b0000_0011);
+    assert!(cpu.status.get(Flag::Z));
+    assert!(cpu.status.get(Flag::C));
 }
 
 #[test]
