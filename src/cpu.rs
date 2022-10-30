@@ -37,7 +37,7 @@ pub enum AddressingMode {
     NoneAddressing,
 }
 
-trait Mem {
+pub trait Mem {
     fn mem_read(&self, addr: u16) -> u8;
 
     fn mem_write(&mut self, addr: u16, data: u8);
@@ -89,13 +89,16 @@ impl CPU {
         self.program_counter = self.mem_read_u16(0xFFFC);
     }
 
-    pub fn load(&mut self, program: Vec<u8>) {
+    pub fn load(&mut self, program: Vec<u8>, start_address: u16) {
         // Load program code into memory, starting at 0x8000 address
-        self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
-        self.mem_write_u16(0xFFFC, 0x8000);
+        self.memory[(start_address as usize)..((start_address as usize) + program.len())].copy_from_slice(&program[..]);
+        self.mem_write_u16(0xFFFC, start_address);
+
+        // self.memory[0x0600..(0x0600 + program.len())].copy_from_slice(&program[..]);
+        // self.mem_write_u16(0xFFFC, 0x0600);
     }
     pub fn load_and_run(&mut self, program: Vec<u8>) {
-        self.load(program);
+        self.load(program, 0x8000);
         self.reset();
         self.run()
     }
@@ -255,7 +258,7 @@ impl CPU {
 
         self.status.update(Flag::C, self.register_a >= data);
         self.status.update(Flag::Z, self.register_a == data);
-        self.status.match_bit(Flag::N, self.register_a - data);
+        self.status.match_bit(Flag::N, self.register_a.wrapping_sub(data));
     }
 
     /// CPX - Compare X Register
@@ -266,7 +269,7 @@ impl CPU {
 
         self.status.update(Flag::C, self.register_x >= data);
         self.status.update(Flag::Z, self.register_x == data);
-        self.status.match_bit(Flag::N, self.register_x - data);
+        self.status.match_bit(Flag::N, self.register_x.wrapping_sub(data));
     }
 
     /// CPY - Compare Y Register
@@ -735,8 +738,13 @@ impl CPU {
 impl CPU {
 
     pub fn run(&mut self) {
+        self.run_with_callback(|_| {});
+    }
+
+    pub fn run_with_callback<F>(&mut self, mut callback: F) where F: FnMut(&mut CPU) {
         let ref opcodes: HashMap<u8, &'static opcodes::OpCode> = *opcodes::OPCODES_MAP;
         loop {
+            callback(self);
             // Read from the ROM the byte at the address in the PC
             let code = self.mem_read(self.program_counter);
             // Increment the PC to the next instruction
