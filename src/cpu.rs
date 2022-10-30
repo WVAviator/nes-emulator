@@ -424,6 +424,59 @@ impl CPU {
         self.status.match_bit(Flag::N, self.register_y - data);
     }
 
+    // DEC - Decrement Memory
+    // Subtracts one from the value held at a specified memory location setting the zero and negative flags as appropriate.
+    fn dec(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        
+        let result = data.wrapping_sub(1);
+        self.mem_write(addr, result);
+        self.update_zero_and_negative_flags(result);
+    }
+
+    // DEX - Decrement X Register
+    // Subtracts one from the X register setting the zero and negative flags as appropriate.
+    fn dex(&mut self) {
+        self.register_x = self.register_x.wrapping_sub(1);
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    // DEX - Decrement Y Register
+    // Subtracts one from the Y register setting the zero and negative flags as appropriate.
+    fn dey(&mut self) {
+        self.register_y = self.register_y.wrapping_sub(1);
+        self.update_zero_and_negative_flags(self.register_y);
+    }
+
+    // EOR - Exclusive OR
+    // An exclusive OR is performed, bit by bit, on the accumulator contents using the contents of a byte of memory.
+    fn eor(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        self.register_a = self.register_a ^ data;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    // INC - Increment Memory
+    // Adds one to the value held at a specified memory location setting the zero and negative flags as appropriate.
+    fn inc(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        let result = data.wrapping_add(1);
+        self.mem_write(addr, result);
+        self.update_zero_and_negative_flags(result);
+    }
+
+    // INY - Increment Y Register
+    // Adds one to the Y register setting the zero and negative flags as appropriate.
+    fn iny(&mut self) {
+        self.register_y = self.register_y.wrapping_add(1);
+        self.update_zero_and_negative_flags(self.register_y);
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         let sum = self.register_a as u16
             + data as u16
@@ -501,6 +554,9 @@ impl CPU {
                 "CMP" => self.cmp(&opcode.mode),
                 "CPX" => self.cpx(&opcode.mode),
                 "CPY" => self.cpy(&opcode.mode),
+                "DEC" => self.dec(&opcode.mode),
+                "EOR" => self.eor(&opcode.mode),
+                "INC" => self.inc(&opcode.mode),
                 "TAX" => self.tax(),
                 "TAY" => self.tay(),
                 "TSX" => self.tsx(),
@@ -508,6 +564,7 @@ impl CPU {
                 "TXS" => self.txs(),
                 "TYA" => self.tya(),
                 "INX" => self.inx(),
+                "INY" => self.iny(),
                 "BCC" => self.bcc(),
                 "BCS" => self.bcs(),
                 "BEQ" => self.beq(),
@@ -520,6 +577,8 @@ impl CPU {
                 "CLD" => self.cld(),
                 "CLI" => self.cli(),
                 "CLV" => self.clv(),
+                "DEX" => self.dex(),
+                "DEY" => self.dey(),
                 "BRK" => return,
                 _ => todo!(),
             }

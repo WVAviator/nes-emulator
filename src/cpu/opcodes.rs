@@ -114,6 +114,15 @@ lazy_static! {
         OpCode::new(0xc4, "CPY", 2, 3, AddressingMode::ZeroPage),
         OpCode::new(0xcc, "CPY", 3, 4, AddressingMode::Absolute),
 
+        OpCode::new(0xc6, "DEC", 2, 5, AddressingMode::ZeroPage),
+        OpCode::new(0xd6, "DEC", 2, 6, AddressingMode::ZeroPage_X),
+        OpCode::new(0xce, "DEC", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0xde, "DEC", 3, 7, AddressingMode::Absolute_X),
+
+        OpCode::new(0xca, "DEX", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0x88, "DEY", 1, 2, AddressingMode::NoneAddressing),
+
         OpCode::new(0x90, "BCC", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
         OpCode::new(0xb0, "BCS", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
         OpCode::new(0xf0, "BEQ", 2, 2, AddressingMode::Relative), //+1 if success, +2 if new page
@@ -134,6 +143,22 @@ lazy_static! {
         OpCode::new(0xb4, "LDY", 2, 4, AddressingMode::ZeroPage_X),
         OpCode::new(0xac, "LDY", 3, 4, AddressingMode::Absolute),
         OpCode::new(0xbc, "LDY", 3, 4, AddressingMode::Absolute_X),
+
+        OpCode::new(0x49, "EOR", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0x45, "EOR", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0x55, "EOR", 2, 4, AddressingMode::ZeroPage_X),
+        OpCode::new(0x4d, "EOR", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0x5d, "EOR", 3, 4, AddressingMode::Absolute_X), // +1 page
+        OpCode::new(0x59, "EOR", 3, 4, AddressingMode::Absolute_Y), // +1 page
+        OpCode::new(0x41, "EOR", 2, 6, AddressingMode::Indirect_X),
+        OpCode::new(0x51, "EOR", 2, 5, AddressingMode::Indirect_Y), // +1 page
+
+        OpCode::new(0xe6, "INC", 2, 5, AddressingMode::ZeroPage),
+        OpCode::new(0xf6, "INC", 2, 6, AddressingMode::ZeroPage_X),
+        OpCode::new(0xee, "INC", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0xfe, "INC", 3, 7, AddressingMode::Absolute_X),
+
+        OpCode::new(0xc8, "INY", 1, 2, AddressingMode::NoneAddressing),
 
     ];
 
