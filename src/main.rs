@@ -11,10 +11,12 @@ use std::{thread, time};
 
 pub mod bus;
 pub mod cpu;
+pub mod ppu;
 pub mod rom;
 
 #[macro_use]
 extern crate lazy_static;
+extern crate bitflags;
 extern crate rand;
 extern crate sdl2;
 
@@ -115,7 +117,7 @@ fn color(byte: u8) -> Color {
     }
 }
 
-fn read_screen_state(cpu: &CPU, frame: &mut [u8; 32 * 32 * 3]) -> bool {
+fn read_screen_state(cpu: &mut CPU, frame: &mut [u8; 32 * 32 * 3]) -> bool {
     let mut frame_idx = 0;
     let mut update = false;
     for i in 0x0200..0x0600 {
