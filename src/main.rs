@@ -1,3 +1,4 @@
+use clap::Parser;
 use cpu::Mem;
 use cpu::CPU;
 use rand::Rng;
@@ -9,10 +10,13 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::EventPump;
 use std::{thread, time};
 
+use crate::trace::trace;
+
 pub mod bus;
 pub mod cpu;
 pub mod ppu;
 pub mod rom;
+pub mod trace;
 
 #[macro_use]
 extern crate lazy_static;
@@ -20,11 +24,23 @@ extern crate bitflags;
 extern crate rand;
 extern crate sdl2;
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    file: String,
+    #[arg(short, long, default_value_t = false)]
+    debug: bool,
+}
+
 pub fn main() {
+    let args = Args::parse();
+
+    println!("File is {} and debug is {}", args.file, args.debug);
+
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let window = video_subsystem
-        .window("Snake Game", (32.0 * 10.0) as u32, (32.0 * 10.0) as u32)
+        .window("NES Emulator", (32.0 * 10.0) as u32, (32.0 * 10.0) as u32)
         .position_centered()
         .build()
         .unwrap();
@@ -40,8 +56,9 @@ pub fn main() {
         .unwrap();
 
     let mut cpu = CPU::new();
+    cpu.debug = args.debug;
 
-    let rom_bytes = std::fs::read("roms/snake.nes").unwrap();
+    let rom_bytes = std::fs::read(args.file).expect("Please specify a valid iNES 1.0 ROM file.");
     let rom = Rom::new(&rom_bytes).expect("Error parsing ROM file binaries.");
 
     cpu.load_rom(rom);
@@ -51,6 +68,10 @@ pub fn main() {
     let mut rng = rand::thread_rng();
 
     cpu.run_with_callback(move |cpu| {
+        if args.debug {
+            trace(cpu);
+        }
+
         handle_user_input(cpu, &mut event_pump);
         cpu.mem_write(0xfe, rng.gen_range(1..=16));
 

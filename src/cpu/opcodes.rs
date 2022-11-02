@@ -172,7 +172,7 @@ lazy_static! {
         OpCode::new(0x6e, "ROR", 3, 6, AddressingMode::Absolute),
         OpCode::new(0x7e, "ROR", 3, 7, AddressingMode::Absolute_X),
 
-        OpCode::new(0x60, "RTS", 1, 6, AddressingMode::Absolute),
+        OpCode::new(0x60, "RTS", 1, 6, AddressingMode::NoneAddressing),
 
         OpCode::new(0x40, "RTI", 1, 6, AddressingMode::NoneAddressing),
 

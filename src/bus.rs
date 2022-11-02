@@ -57,7 +57,7 @@ impl Mem for Bus {
             }
             0x8000..=0xFFFF => self.read_prg_rom(addr),
             _ => {
-                println!("Ignoring memory read access at {}.", addr);
+                panic!("Ignoring memory read access at {}.", addr);
                 0
             }
         }

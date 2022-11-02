@@ -6,7 +6,7 @@ mod test;
 
 use crate::{bus::Bus, rom::Rom};
 
-use self::status::{Flag, ProcessorStatus};
+use self::{status::{Flag, ProcessorStatus}, opcodes::OpCode};
 use std::collections::HashMap;
 
 pub const STACK_OFFSET: u16 = 0x0100;
@@ -20,6 +20,7 @@ pub struct CPU {
     pub program_counter: u16,    // program counter holds two bytes, points to next instructions
     pub stack_pointer: u8,
     pub bus: Bus,
+    pub debug: bool,
 }
 
 #[derive(Debug)]
@@ -84,6 +85,7 @@ impl CPU {
             program_counter: 0,
             stack_pointer: STACK_RESET,
             bus: Bus::new(),
+            debug: false,
         }
     }
 
@@ -94,7 +96,10 @@ impl CPU {
         self.stack_pointer = STACK_RESET;
         self.status.reset();
 
-        self.program_counter = self.mem_read_u16(0xFFFC);
+        self.program_counter = self.mem_read_u16(0xFFFC) - if self.debug { 4 } else { 0 };
+        if self.debug {
+            println!("Reset CPU. Reading new program start location {:0<4X}", self.program_counter);
+        }
     }
 
     pub fn load_rom(&mut self, rom: Rom) {
@@ -288,7 +293,7 @@ impl CPU {
 
         self.status.update(Flag::C, self.register_y >= data);
         self.status.update(Flag::Z, self.register_y == data);
-        self.status.match_bit(Flag::N, self.register_y - data);
+        self.status.match_bit(Flag::N, self.register_y.wrapping_sub(data));
     }
 
     /// DEC - Decrement Memory
@@ -461,7 +466,7 @@ impl CPU {
     /// PHP - Push Processor Status
     /// Pushes a copy of the status flags on to the stack.
     fn php(&mut self) {
-        self.stack_push(self.status.value());
+        self.stack_push(self.status.value() | Flag::B.as_u8() | Flag::S.as_u8());
     }
 
     /// PLA - Pull Accumulator
@@ -476,6 +481,8 @@ impl CPU {
     fn plp(&mut self) {
         let flags = self.stack_pop();
         self.status.restore(flags);
+        self.status.unset(Flag::B);
+        self.status.set(Flag::S);
     }
 
     /// ROL - Rotate Left
@@ -535,7 +542,9 @@ impl CPU {
         let restored_program_counter = self.stack_pop_u16();
 
         self.status.restore(restored_status);
-        self.program_counter = restored_program_counter.wrapping_add(1);
+        self.status.unset(Flag::B);
+        self.status.set(Flag::S);
+        self.program_counter = restored_program_counter;
     }
 
     /// RTS - Return from Subroutine
@@ -622,10 +631,9 @@ impl CPU {
     }
 
     /// TXS - Transfer X to Stack Pointer
-    /// Copies the current contents of the X register into the stack register and sets the zero and negative flags as appropriate.
+    /// Copies the current contents of the X register into the stack.
     fn txs(&mut self) {
         self.stack_pointer = self.register_x;
-        self.update_zero_and_negative_flags(self.stack_pointer);
     }
 
     /// TYA - Transfer Y to accumulator
@@ -755,13 +763,15 @@ impl CPU {
             callback(self);
             // Read from the ROM the byte at the address in the PC
             let code = self.mem_read(self.program_counter);
+
             // Increment the PC to the next instruction
             self.program_counter += 1;
             let program_counter_state = self.program_counter;
-
+            
             let opcode = opcodes
                 .get(&code)
                 .expect(&format!("OpCode {:x} is not recognized", code));
+            
 
             match opcode.mnemonic {
                 "ADC" => self.adc(&opcode.mode),
