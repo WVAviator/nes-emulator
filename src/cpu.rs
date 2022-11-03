@@ -121,6 +121,27 @@ impl CPU {
 /// Opcodes
 impl CPU {
 
+    /// AAC - (Unofficial)
+    /// AND byte with accumulator. If result is negative then carry is set.
+    /// Status flags: N,Z,C
+    fn aac(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        self.register_a = self.register_a & value;
+        self.update_zero_and_negative_flags(self.register_a);
+        self.status.update(Flag::C, self.register_a & 0b1000_0000 == 0b1000_0000);
+    }
+
+    /// AAX - (Unofficial)
+    /// AND X register with accumulator and store result in memory.
+    /// Status flags: N,Z
+    fn aax(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let result = self.register_a & self.register_x;
+        self.mem_write(addr, result);
+        self.update_zero_and_negative_flags(result);
+    }
+
     /// ADC - Add with Carry
     /// This instruction adds the contents of a memory location to the accumulator together with the carry bit. If overflow occurs the carry bit is set, this enables multiple byte addition to be performed.
     fn adc(&mut self, mode: &AddressingMode) {
@@ -135,6 +156,36 @@ impl CPU {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
         self.register_a = self.register_a & value;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    /// ARR - (Unofficial)
+    /// AND byte with accumulator, then rotate one bit right in accu-mulator and
+    /// check bit 5 and 6:
+    /// If both bits are 1: set C, clear V.
+    /// If both bits are 0: clear C and V.
+    /// If only bit 5 is 1: set V, clear C.
+    /// If only bit 6 is 1: set C and V.
+    /// Status flags: N,V,Z,C
+    fn arr(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        self.register_a = self.register_a & value;
+        self.register_a = self.register_a.rotate_right(1);
+        let bit_5_set = self.register_a & 0b0100_0000 == 0b0100_0000;
+        let bit_6_set = self.register_a & 0b0010_0000 == 0b0010_0000;
+        match (bit_5_set, bit_6_set) {
+            (true, true) => {
+                self.status.set(Flag::C);
+                self.status.unset(Flag::V);
+            }
+            (true, false) => {
+                self.status.unset(Flag::C);
+                self.status.set(Flag::V);
+            }
+            (false, true) => self.status.set_many(vec![Flag::C, Flag::V]),
+            (false, false) => self.status.unset_many(vec![Flag::C, Flag::V]),
+        }
         self.update_zero_and_negative_flags(self.register_a);
     }
 
@@ -160,6 +211,58 @@ impl CPU {
         self.status.update(Flag::C, bit_7_set);
 
         self.update_zero_and_negative_flags(result);
+    }
+
+    /// ASR - (Unofficial)
+    /// AND byte with accumulator, then shift right one bit in accumu-lator.
+    /// Status flags: N,Z,C
+    fn asr(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        self.register_a = self.register_a & value;
+        let lsb = self.register_a & 0b0000_0001 == 0b0000_0001;
+        self.register_a = self.register_a >> 1;
+        if self.status.get(Flag::C) {
+            self.register_a = self.register_a | 0b1000_0000;
+        }
+        self.status.update(Flag::C, lsb);
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    /// ATX - (Unofficial)
+    /// AND byte with accumulator, then transfer accumulator to X register.
+    /// Status flags: N,Z
+    fn atx(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        self.register_a = self.register_a & value;
+        self.register_x = self.register_a;
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    /// AXA - (Unofficial)
+    /// AND X register with accumulator then AND result with 7 and store in memory.
+    /// Status flags: -
+    fn axa(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let result = self.register_x & self.register_a & 7;
+        self.mem_write(addr, result);
+    }
+
+    // AXS - (Unofficial)
+    /// AND X register with accumulator and store result in X regis-ter, 
+    /// then subtract byte from X register (without borrow).
+    /// Status flags: N,Z,C
+    fn axs(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        let x_and_a = self.register_x & self.register_a;
+        self.register_x = x_and_a.wrapping_sub(data);
+
+        if data <= x_and_a {
+            self.status.set(Flag::C);
+        }
+        self.update_zero_and_negative_flags(self.register_x);
     }
 
     /// BCC - Branch if Carry Clear
@@ -294,6 +397,25 @@ impl CPU {
         self.status.update(Flag::C, self.register_y >= data);
         self.status.update(Flag::Z, self.register_y == data);
         self.status.match_bit(Flag::N, self.register_y.wrapping_sub(data));
+    }
+
+    /// DCP - (Unofficial)
+    /// Decrements the value in memory, then CMPs the result with A
+    /// Status flags: C
+    /// The z and c flags are set according to this chart:
+    /// A  <  value      0  0
+    /// A  =  value      1  1
+    /// A  >  value      0  1
+    /// N is set if the high bit is set after A - value
+    fn dcp(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        let result = data.wrapping_sub(1);
+        self.mem_write(addr, result);
+
+        self.status.update(Flag::C, result >= self.register_a);
+        self.status.update(Flag::Z, result == self.register_a);
+        self.status.match_bit(Flag::N, self.register_a.wrapping_sub(result));
     }
 
     /// DEC - Decrement Memory
@@ -699,18 +821,20 @@ impl CPU {
     }
 
     fn add_to_register_a(&mut self, data: u8) {
-        let sum = self.register_a as u16
-            + data as u16
-            + if self.status.get(Flag::C) { 1 } else { 0 } as u16;
+        self.register_a = self.add(self.register_a, data);
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    fn add(&mut self, value_a: u8, value_b: u8) -> u8 {
+        let sum = value_a as u16 + value_b as u16 + if self.status.get(Flag::C) { 1 } else {0} as u16;
         let carry = sum > 0xff;
         self.status.update(Flag::C, carry);
 
         let result = sum as u8;
-        let overflow = (data ^ result) & (result ^ self.register_a) & 0x80 != 0;
+        let overflow = (value_b ^ result) & (result ^ value_a) & 0x80 != 0;
         self.status.update(Flag::V, overflow);
 
-        self.register_a = result;
-        self.update_zero_and_negative_flags(self.register_a);
+        result
     }
 
     fn branch(&mut self) {
