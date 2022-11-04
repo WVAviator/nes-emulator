@@ -443,6 +443,28 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_y);
     }
 
+    /// DOP - (Unofficial)
+    /// No operation (double NOP). The argument has no significance.
+    /// Status flags: -
+    fn dop(&self) {}
+
+    /// ISC (Unofficial)
+    /// Increase memory by one, then subtract memory from accu-mulator (with borrow).
+    /// n - Was the high bit of the result set?
+    /// v - Was there signed overflow?
+    /// v is set only if one of the following is true:
+    ///   If both A and value are negative and the result is positive
+    ///   If both A and value are positive and the result is negative
+    /// z - Was the result 0?
+    /// c - Was there overflow?
+    fn isc(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr).wrapping_add(1);
+        self.mem_write(addr, data);
+
+        self.add_to_register_a(((data as i8).wrapping_neg().wrapping_sub(1)) as u8);
+    }
+
     /// EOR - Exclusive OR
     /// An exclusive OR is performed, bit by bit, on the accumulator contents using the contents of a byte of memory.
     fn eor(&mut self, mode: &AddressingMode) {
@@ -509,6 +531,35 @@ impl CPU {
         self.stack_push_u16(self.program_counter.wrapping_add(1));
         let addr = self.mem_read_u16(self.program_counter);
         self.program_counter = addr;
+    }
+
+    /// KIL - (Unofficial)
+    /// Stop program counter (processor lock up).
+    fn kil(&self) {
+        panic!("KIL invoked - processor locked up.");
+    }
+
+    /// LAR (Unofficial)
+    /// AND memory with stack pointer, transfer result to accu-mulator, X register and stack pointer.
+    fn lar(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        self.stack_pointer = self.stack_pointer & value;
+        self.register_a = self.stack_pointer;
+        self.register_x = self.stack_pointer;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    /// LAX - (Unofficial)
+    /// Load accumulator and X register with memory.
+    fn lax(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        self.register_a = value;
+        self.register_x = value;
+        self.update_zero_and_negative_flags(self.register_a);
     }
 
     /// LDA - Load Accumulator
@@ -607,6 +658,45 @@ impl CPU {
         self.status.set(Flag::S);
     }
 
+    /// RLA - (Unofficial)
+    /// Rotate one bit left in memory, then AND accumulator with memory.
+    fn rla(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        let bit_7_set = data & 0b1000_0000 == 0b1000_0000;
+
+        let result = if self.status.get(Flag::C) { 
+            (data << 1) + 1
+         } else {
+            data << 1
+         };
+         self.status.update(Flag::C, bit_7_set);
+
+         self.mem_write(addr, result);
+         self.register_a = self.register_a & result;
+         self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    /// RRA - (Unoffical)
+    /// Rotate one bit right in memory, then add memory to accumulator (with carry).
+    fn rra(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        let bit_1_set = data & 0b0000_0001 == 0b0000_0001;
+        let result = if self.status.get(Flag::C) {
+            (data >> 1) | 0b1000_0000
+        } else {
+            data >> 1
+        };
+        self.status.update(Flag::C, bit_1_set);
+        self.mem_write(addr, result);
+
+        self.add_to_register_a(result);
+
+    }
+
     /// ROL - Rotate Left
     /// Move each of the bits in either A or M one place to the left. Bit 0 is filled with the current value of the carry flag whilst the old bit 7 becomes the new carry flag value.
     fn rol(&mut self, mode: &AddressingMode) {
@@ -703,6 +793,45 @@ impl CPU {
         self.status.set(Flag::I);
     }
 
+    /// SLO - (Unofficial)
+    /// Shift left one bit in memory, then OR accumulator with memory.
+    fn slo(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        let bit_7_set = data & 0b1000_0000 == 0b1000_0000;
+
+        let result = if self.status.get(Flag::C) { 
+            (data << 1) + 1
+         } else {
+            data << 1
+         };
+         self.status.update(Flag::C, bit_7_set);
+
+         self.mem_write(addr, result);
+
+         self.register_a = self.register_a | result;
+         self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    /// SRE - (Unofficial)
+    /// Shift right one bit in memory, then EOR accumulator with memory.
+    fn sre(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        let bit_1_set = data & 0b0000_0001 == 0b0000_0001;
+        let result = if self.status.get(Flag::C) {
+            (data >> 1) | 0b1000_0000
+        } else {
+            data >> 1
+        };
+        self.status.update(Flag::C, bit_1_set);
+        self.mem_write(addr, result);
+
+        self.register_a = self.register_a ^ result;
+    }
+
     /// STA - Store Accumulator
     /// Stores the contents of the accumulator into memory.
     fn sta(&mut self, mode: &AddressingMode) {
@@ -724,6 +853,22 @@ impl CPU {
         self.mem_write(addr, self.register_y);
     }
 
+    /// SXA - (Unofficial)
+    /// AND X register with the high byte of the target address of the argument + 1.
+    fn sxa(&mut self) {
+        let addr = self.mem_read_u16(self.program_counter) + self.register_y as u16;
+        let data = self.register_x & ((addr >> 8) as u8 + 1);
+        self.mem_write(addr, data);
+    }
+
+    /// SYA - (Unofficial)
+    /// AND Y register with the high byte of the target address of the argument + 1.
+    fn sya(&mut self) {
+        let addr = self.mem_read_u16(self.program_counter) + self.register_x as u16;
+        let data = self.register_y & ((addr >> 8) as u8 + 1);
+        self.mem_write(addr, data);
+    }
+
     /// TAX - Transfer Accumulator to X
     /// Copies the current contents of the accumulator into the X register and sets the zero and negative flags as appropriate
     fn tax(&mut self) {
@@ -737,6 +882,10 @@ impl CPU {
         self.register_y = self.register_a;
         self.update_zero_and_negative_flags(self.register_y);
     }
+
+    /// TOP - (Unofficial)
+    ///  Triple NOP
+    fn top(&self) {}
 
     /// TSX - Transfer Stack Pointer to X
     /// Copies the current contents of the stack register into the X register and sets the zero and negative flags as appropriate.
@@ -763,6 +912,31 @@ impl CPU {
     fn tya(&mut self) {
         self.register_a = self.register_y;
         self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    /// XAA - (Unofficial)
+    /// Differing opinions. 
+    fn xaa(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        let result = self.register_a & self.register_x & data;
+        self.update_zero_and_negative_flags(result);
+
+        self.register_a = self.register_a & self.register_x & (data | 0xEF);
+    }
+
+    /// XAS - (Unofficial)
+    /// AND X register with accumulator and store result in stack pointer, then
+    /// AND stack pointer with the high byte of the target address of the
+    /// argument + 1. Store result in memory.
+    fn xas(&mut self) {
+        let addr = self.mem_read_u16(self.program_counter) + self.register_y as u16;
+
+        self.stack_pointer = self.register_a & self.register_x;
+        let data = ((addr >> 8) as u8 + 1) & self.stack_pointer;
+
+        self.mem_write(addr, data);
     }
 
 }
