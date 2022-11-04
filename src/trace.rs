@@ -162,8 +162,22 @@ pub fn trace(cpu: &mut CPU) {
         cpu.stack_pointer
     );
 
+    let mut display_mnemonic = String::new();
+
+    if opcode.illegal {
+        display_mnemonic.push_str("*");
+    } else {
+        display_mnemonic.push_str(" ");
+    }
+
+    if opcode.mnemonic == "DOP" || opcode.mnemonic == "TOP" {
+        display_mnemonic.push_str("NOP");
+    } else {
+        display_mnemonic.push_str(opcode.mnemonic)
+    };
+
     println!(
-        "{:<6}{:<10}{:<4}{:<28}{:<26}",
-        dbg_pc, code_string, opcode.mnemonic, instruction, current_values
+        "{:<6}{:<9}{:<5}{:<28}{:<26}",
+        dbg_pc, code_string, display_mnemonic, instruction, current_values
     );
 }

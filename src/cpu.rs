@@ -132,16 +132,6 @@ impl CPU {
         self.status.update(Flag::C, self.register_a & 0b1000_0000 == 0b1000_0000);
     }
 
-    /// AAX - (Unofficial)
-    /// AND X register with accumulator and store result in memory.
-    /// Status flags: N,Z
-    fn aax(&mut self, mode: &AddressingMode) {
-        let addr = self.get_operand_address(mode);
-        let result = self.register_a & self.register_x;
-        self.mem_write(addr, result);
-        self.update_zero_and_negative_flags(result);
-    }
-
     /// ADC - Add with Carry
     /// This instruction adds the contents of a memory location to the accumulator together with the carry bit. If overflow occurs the carry bit is set, this enables multiple byte addition to be performed.
     fn adc(&mut self, mode: &AddressingMode) {
@@ -413,7 +403,7 @@ impl CPU {
         let result = data.wrapping_sub(1);
         self.mem_write(addr, result);
 
-        self.status.update(Flag::C, result >= self.register_a);
+        // self.status.update(Flag::C, result >= self.register_a);
         self.status.update(Flag::Z, result == self.register_a);
         self.status.match_bit(Flag::N, self.register_a.wrapping_sub(result));
     }
@@ -457,7 +447,7 @@ impl CPU {
     ///   If both A and value are positive and the result is negative
     /// z - Was the result 0?
     /// c - Was there overflow?
-    fn isc(&mut self, mode: &AddressingMode) {
+    fn isb(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let data = self.mem_read(addr).wrapping_add(1);
         self.mem_write(addr, data);
@@ -766,6 +756,16 @@ impl CPU {
         self.program_counter = pc_addr.wrapping_add(1);
     }
 
+    /// SAX - (Unofficial)
+    /// AND X register with accumulator and store result in memory.
+    /// Status flags: N,Z
+    fn sax(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let result = self.register_a & self.register_x;
+        self.mem_write(addr, result);
+        // self.update_zero_and_negative_flags(result);
+    }
+
     /// SBC - Subtract with Carry
     /// This instruction subtracts the contents of a memory location to the accumulator together with the not of the carry bit. If overflow occurs the carry bit is clear, this enables multiple byte subtraction to be performed.
     fn sbc(&mut self, mode: &AddressingMode) {
@@ -800,14 +800,9 @@ impl CPU {
         let data = self.mem_read(addr);
 
         let bit_7_set = data & 0b1000_0000 == 0b1000_0000;
+        self.status.update(Flag::C, bit_7_set);
 
-        let result = if self.status.get(Flag::C) { 
-            (data << 1) + 1
-         } else {
-            data << 1
-         };
-         self.status.update(Flag::C, bit_7_set);
-
+        let result = data << 1;
          self.mem_write(addr, result);
 
          self.register_a = self.register_a | result;
@@ -821,12 +816,9 @@ impl CPU {
         let data = self.mem_read(addr);
 
         let bit_1_set = data & 0b0000_0001 == 0b0000_0001;
-        let result = if self.status.get(Flag::C) {
-            (data >> 1) | 0b1000_0000
-        } else {
-            data >> 1
-        };
         self.status.update(Flag::C, bit_1_set);
+        
+        let result = data >> 1;
         self.mem_write(addr, result);
 
         self.register_a = self.register_a ^ result;
@@ -1073,7 +1065,6 @@ impl CPU {
 
             match opcode.mnemonic {
                 "AAC" => self.aac(&opcode.mode),
-                "AAX" => self.aax(&opcode.mode),
                 "ARR" => self.arr(&opcode.mode),
                 "ASR" => self.asr(&opcode.mode),
                 "ATX" => self.atx(&opcode.mode),
@@ -1107,7 +1098,7 @@ impl CPU {
                 "INC" => self.inc(&opcode.mode),
                 "INX" => self.inx(),
                 "INY" => self.iny(),
-                "ISC" => self.isc(&opcode.mode),
+                "ISB" => self.isb(&opcode.mode),
                 "JMP" => self.jmp(&opcode.mode),
                 "JSR" => self.jsr(),
                 "KIL" => self.kil(),
@@ -1129,6 +1120,7 @@ impl CPU {
                 "RRA" => self.rra(&opcode.mode),
                 "RTI" => self.rti(),
                 "RTS" => self.rts(),
+                "SAX" => self.sax(&opcode.mode),
                 "SBC" => self.sbc(&opcode.mode),
                 "SEC" => self.sec(),
                 "SED" => self.sed(),
