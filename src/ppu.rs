@@ -24,8 +24,10 @@ pub struct NesPPU {
     pub status_register: PPUStatusRegister,
     pub scroll_register: ScrollRegister,
     pub oam_addr: u8,
-
     pub mirroring: Mirroring,
+    scanline: u16,
+    cycles: usize,
+    pub nmi_interrupt: Option<u8>,
 }
 
 pub trait PPU {
@@ -57,6 +59,9 @@ impl NesPPU {
             status_register: PPUStatusRegister::new(),
             scroll_register: ScrollRegister::new(),
             oam_addr: 0,
+            scanline: 0,
+            cycles: 0,
+            nmi_interrupt: None,
         }
     }
 
@@ -76,6 +81,28 @@ impl NesPPU {
             _ => vram_index,
         }
     }
+
+    pub fn tick(&mut self, cycles: u8) -> bool {
+        self.cycles += cycles as usize;
+        if self.cycles >= 341 {
+            self.scanline += 1;
+            self.cycles -= 341;
+
+            if self.scanline == 241 {
+                if self.ctrl.generate_vblank_nmi() {
+                    self.status_register.set_vblank_status(true);
+                    todo!("should trigger nmi interrupt")
+                }
+            }
+
+            if self.scanline >= 262 {
+                self.scanline = 0;
+                self.status_register.reset_vblank_status();
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 impl PPU for NesPPU {
@@ -84,7 +111,14 @@ impl PPU for NesPPU {
     }
 
     fn write_to_ctrl(&mut self, data: u8) {
+        let before_nmi_status = self.ctrl.generate_vblank_nmi();
         self.ctrl.update(data);
+        if !before_nmi_status
+            && self.ctrl.generate_vblank_nmi()
+            && self.status_register.is_in_vblank()
+        {
+            self.nmi_interrupt = Some(1);
+        }
     }
 
     fn read_data(&mut self) -> u8 {

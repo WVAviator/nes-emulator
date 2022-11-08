@@ -41,4 +41,16 @@ impl PPUStatusRegister {
     pub fn update(&mut self, data: u8) {
         self.bits = data;
     }
+
+    pub fn set_vblank_status(&mut self, status: bool) {
+        self.set(PPUStatusRegister::VBLANK, status);
+    }
+
+    pub fn reset_vblank_status(&mut self) {
+        self.remove(PPUStatusRegister::VBLANK);
+    }
+
+    pub fn is_in_vblank(&self) -> bool {
+        self.contains(PPUStatusRegister::VBLANK)
+    }
 }

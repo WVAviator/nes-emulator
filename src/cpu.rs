@@ -817,6 +817,7 @@ impl CPU {
 
         let bit_1_set = data & 0b0000_0001 == 0b0000_0001;
         self.status.update(Flag::C, bit_1_set);
+         
         
         let result = data >> 1;
         self.mem_write(addr, result);
@@ -1043,11 +1044,23 @@ impl CPU {
 /// Runtime functions
 impl CPU {
 
+    fn interrupt_nmi(&mut self) {
+        self.stack_push_u16(self.program_counter);
+        self.php();
+        self.status.set(Flag::I);
+        self.bus.tick(2);
+        self.program_counter = self.mem_read_u16(0xfffa);
+    }
+
     pub fn run(&mut self) {
         self.run_with_callback(|_| {});
     }
 
     pub fn run_with_callback<F>(&mut self, mut callback: F) where F: FnMut(&mut CPU) {
+        if let Some(_nmi) = self.bus.poll_nmi_status() {
+            self.interrupt_nmi();
+        }
+        
         let ref opcodes: HashMap<u8, &'static opcodes::OpCode> = *opcodes::OPCODES_MAP;
         loop {
             callback(self);
@@ -1144,6 +1157,8 @@ impl CPU {
                 "BRK" => return,
                 _ => todo!(),
             }
+
+            self.bus.tick(opcode.cycles);
 
             if program_counter_state == self.program_counter {
                 self.program_counter += (opcode.len - 1) as u16;
